@@ -1,0 +1,135 @@
+import numpy as np
+import math
+
+# 定义Pauli矩阵
+I = np.array([[1, 0], [0, 1]])
+X = np.array([[0, 1], [1, 0]])
+Z = np.array([[1, 0], [0, -1]])
+
+def calculate_correlations(theta, a0, a1, b0=None, b1=None):
+    """
+    计算量子关联算子及其矩阵
+
+    参数:
+    theta: 量子态参数
+    a0, a1: Alice测量角度
+    b0, b1: Bob测量角度(可选，如果不提供则根据tan(b)=sin(2θ)计算)
+
+    返回:
+    返回元组包含:
+    - 8个期望值
+    - 8个对应的4x4矩阵
+    - 计算得到的b0,b1
+    - alpha值
+    - sqrt(8 + 2*alpha²)值
+    """
+    # 定义量子态 |psi⟩ = cosθ|00⟩ + sinθ|11⟩
+    psi = np.array([np.cos(theta), 0, 0, np.sin(theta)])
+
+    # 如果未提供b0,b1，则根据tan(b)=sin(2θ)计算
+    calculated_b = None
+    if b0 is None or b1 is None:
+        sin2theta = np.sin(2 * theta)
+        b0 = np.arctan(sin2theta)
+        b1 = np.arctan(sin2theta)
+        calculated_b = (b0, b1)
+
+    # 计算alpha值
+    alpha = 2 / math.sqrt(1 + 2 * (math.tan(2 * theta)) ** 2)
+
+    # 计算sqrt(8 + 2*alpha²)值
+    sqrt_value = math.sqrt(8 + 2 * (alpha ** 2))
+
+    # 定义测量算符
+    A0 = np.cos(a0) * Z + np.sin(a0) * X
+    A1 = np.cos(a1) * Z + np.sin(a1) * X
+    B0 = np.cos(b0) * Z + np.sin(b0) * X
+    B1 = np.cos(b1) * Z - np.sin(b1) * X
+
+    # 计算张量积算符
+    def tensor_op(op1, op2):
+        return np.kron(op1, op2)
+
+    # 计算期望值
+    def expectation_value(op):
+        return np.dot(psi.conj(), np.dot(op, psi)).real
+
+    # 计算8个关联算子的矩阵
+    matrices = {}
+    matrices['A0'] = tensor_op(A0, I)
+    matrices['A1'] = tensor_op(A1, I)
+    matrices['B0'] = tensor_op(I, B0)
+    matrices['B1'] = tensor_op(I, B1)
+    matrices['A0B0'] = tensor_op(A0, B0)
+    matrices['A0B1'] = tensor_op(A0, B1)
+    matrices['A1B0'] = tensor_op(A1, B0)
+    matrices['A1B1'] = tensor_op(A1, B1)
+
+    # 计算8个期望值
+    expectations = {}
+    expectations['EA0'] = expectation_value(matrices['A0'])
+    expectations['EA1'] = expectation_value(matrices['A1'])
+    expectations['EB0'] = expectation_value(matrices['B0'])
+    expectations['EB1'] = expectation_value(matrices['B1'])
+    expectations['EA0B0'] = expectation_value(matrices['A0B0'])
+    expectations['EA0B1'] = expectation_value(matrices['A0B1'])
+    expectations['EA1B0'] = expectation_value(matrices['A1B0'])
+    expectations['EA1B1'] = expectation_value(matrices['A1B1'])
+
+    return (
+        expectations['EA0'], expectations['EA1'],
+        expectations['EB0'], expectations['EB1'],
+        expectations['EA0B0'], expectations['EA0B1'],
+        expectations['EA1B0'], expectations['EA1B1'],
+        matrices,
+        (b0, b1),
+        alpha,
+        sqrt_value
+    )
+
+# 示例使用
+theta = np.pi / 6  # 30度
+a0 = 0
+a1 = np.pi / 2
+
+# 计算关联算子(不提供b0,b1)
+EA0, EA1, EB0, EB1, EA0B0, EA0B1, EA1B0, EA1B1, matrices, (b0, b1), alpha, sqrt_value = calculate_correlations(theta, a0, a1)
+
+# 计算组合矩阵: alpha * A0 + A0B0 + A0B1 + A1B0 - A1B1
+combined_matrix = alpha * matrices['A0'] + matrices['A0B0'] + matrices['A0B1'] + matrices['A1B0'] - matrices['A1B1']
+
+# 计算组合矩阵的最大特征值
+eigenvalues = np.linalg.eigvals(combined_matrix)
+max_eigenvalue = np.max(eigenvalues.real)  # 取实部
+
+# 输出结果
+print("输入参数:")
+print(f"theta = {theta:.6f} rad")
+print(f"a0 = {a0:.6f} rad, a1 = {a1:.6f} rad")
+print("\n计算得到的Bob测量角度:")
+print(f"b0 = {b0:.6f} rad (根据tan(b0) = sin(2θ) = {np.sin(2 * theta):.6f})")
+print(f"b1 = {b1:.6f} rad (根据tan(b1) = sin(2θ) = {np.sin(2 * theta):.6f})")
+print("\n计算得到的alpha值:")
+print(f"alpha = {alpha:.6f}")
+
+
+print("\n单算符期望值:")
+print(f"<A0> = {EA0:.6f}")
+print(f"<A1> = {EA1:.6f}")
+print(f"<B0> = {EB0:.6f}")
+print(f"<B1> = {EB1:.6f}")
+
+print("\n联合期望值:")
+print(f"<A0B0> = {EA0B0:.6f}")
+print(f"<A0B1> = {EA0B1:.6f}")
+print(f"<A1B0> = {EA1B0:.6f}")
+print(f"<A1B1> = {EA1B1:.6f}")
+
+print("\n组合矩阵 alpha*A0 + A0B0 + A0B1 + A1B0 - A1B1:")
+print(combined_matrix)
+
+print("\n组合矩阵的最大特征值:")
+print(f"{max_eigenvalue:.6f}")
+
+print("\n计算得到的sqrt(8 + 2*alpha²)值:")
+print(f"sqrt(8 + 2*alpha²) = {sqrt_value:.6f}")
