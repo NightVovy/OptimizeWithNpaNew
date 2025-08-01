@@ -69,6 +69,10 @@ def calculate_parameters(theta, a0, a1, fixed_b0=None, fixed_b1=None):
     B0 = expectation(tensor_op(I, mea_B0))
     B1 = expectation(tensor_op(I, mea_B1))
 
+    print("\nMeasurement angles:")
+    print(f"a0: {a0:.6f}  a1: {a1:.6f}")
+    print(f"b0: {b0:.6f}  b1: {b1:.6f}")
+
     return {
         'A0': A0, 'A1': A1, 'B0': B0, 'B1': B1,
         'E00': E00, 'E01': E01, 'E10': E10, 'E11': E11,
@@ -109,31 +113,12 @@ def verify_formula(params, s_values=[1, -1], t_values=[1, -1]):
     return results
 
 
-def randomize_theta(theta, iteration, max_theta=math.pi / 4):
-    """Randomly increase theta with guaranteed positive results"""
-    # Determine change range
-    if iteration == 0:
-        min_change, max_change = 0.05, 0.2
-    else:
-        min_change, max_change = 0.06, 0.2
-
-    # Calculate remaining range to max_theta
-    remaining_range = max_theta - theta
-    actual_max_change = min(max_change, remaining_range)
-
-    # Ensure we can meet the minimum requirement
-    if actual_max_change < min_change:
-        new_theta = max_theta  # Go directly to maximum
-    else:
-        # Generate positive change within required range
-        change = random.uniform(min_change, actual_max_change)
-        new_theta = theta + change
-
-    # Final boundary check
-    if new_theta > max_theta:
-        new_theta = max_theta
-
-    return new_theta
+def decrease_theta(theta, iteration, min_theta=0.001):
+    """Decrease theta with each iteration"""
+    # Start with pi/24 and decrease by a factor each time
+    new_theta = theta * (0.7 ** iteration)
+    # Ensure we don't go below min_theta
+    return max(new_theta, min_theta)
 
 
 def calculate_angle_mod(a, theta, power):
@@ -202,15 +187,14 @@ def check_angle_relations(a0, a1, b0, b1, theta, check_a1=True):
     return condition1 and all_conditions2_met
 
 
-def run_simulation(initial_theta, a0, a1, iterations=5):
-    """Run the simulation with theta increasing"""
+def run_simulation(initial_theta, a0, a1, iterations=10):
+    """Run the simulation with theta decreasing"""
     theta = initial_theta
-    max_theta = math.pi / 4
+    min_theta = 0.001
 
-    # Calculate fixed b0 and b1 based on initial theta
-    sin2theta = np.sin(2 * initial_theta)
-    fixed_b0 = np.arctan(sin2theta)
-    fixed_b1 = math.pi - np.arctan(sin2theta)
+    # Calculate fixed b0 and b1 based on sin(2*pi/6)
+    fixed_b0 = np.arctan(np.sin(2 * math.pi/6))
+    fixed_b1 = math.pi - fixed_b0
 
     first_iteration = True
     theta_values = []
@@ -224,7 +208,7 @@ def run_simulation(initial_theta, a0, a1, iterations=5):
             print(f"Starting theta: {theta:.6f} (close to {closest_name} = {closest_value:.6f})")
         else:
             print(f"Starting theta: {theta:.6f} (not close to any standard angle)")
-        print(f"Range: 0 < theta ≤ {max_theta:.6f}")
+        print(f"Range: {min_theta:.6f} ≤ theta ≤ {initial_theta:.6f}")
 
         params = calculate_parameters(theta, a0, a1, fixed_b0, fixed_b1)
 
@@ -258,24 +242,24 @@ def run_simulation(initial_theta, a0, a1, iterations=5):
         first_iteration = False
 
         old_theta = theta
-        theta = randomize_theta(theta, i)
-        change = theta - old_theta  # Always positive
+        theta = decrease_theta(theta, i)
+        change = theta - old_theta  # This will be negative
         theta_values.append(theta)
 
         # Display new theta value and closest special angle
         closest_name, closest_value = get_closest_special_angle(theta)
-        print(f"\nApplied change: +{change:.6f}")
+        print(f"\nApplied change: {change:.6f}")
         if closest_name:
             print(f"New theta: {theta:.6f} (close to {closest_name} = {closest_value:.6f})")
         else:
             print(f"New theta: {theta:.6f} (not close to any standard angle)")
-        print(f"Range: 0 < theta ≤ {max_theta:.6f}")
+        print(f"Range: {min_theta:.6f} ≤ theta ≤ {initial_theta:.6f}")
 
-    # Ensure we have a theta=pi/4 case at the end
-    if not math.isclose(theta, max_theta, rel_tol=1e-9):
-        print("\n=== Final iteration (theta=π/4) ===")
-        theta = max_theta
-        print(f"Setting theta to π/4: {theta:.6f}")
+    # Final check when theta is very small
+    if theta > min_theta:
+        print("\n=== Final iteration (theta near 0) ===")
+        theta = min_theta
+        print(f"Setting theta to minimum: {theta:.6f}")
 
         params = calculate_parameters(theta, a0, a1, fixed_b0, fixed_b1)
 
@@ -308,9 +292,9 @@ def run_simulation(initial_theta, a0, a1, iterations=5):
 
 
 # Set initial parameters
-initial_theta = math.pi / 6
+initial_theta = math.pi / 6  # Starting from pi/24
 a0 = 0  # This remains fixed now
 a1 = math.pi / 2
 
-# Run the simulation
-run_simulation(initial_theta, a0, a1, iterations=5)
+# Run the simulation with 10 iterations
+run_simulation(initial_theta, a0, a1, iterations=10)
