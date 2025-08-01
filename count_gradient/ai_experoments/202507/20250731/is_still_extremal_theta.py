@@ -8,16 +8,45 @@ X = np.array([[0, 1], [1, 0]])
 Z = np.array([[1, 0], [0, -1]])
 I = np.eye(2)
 
+# Special angles for comparison
+SPECIAL_ANGLES = {
+    '0': 0,
+    'π/12': math.pi / 12,
+    'π/6': math.pi / 6,
+    'π/4': math.pi / 4,
+    'π/3': math.pi / 3,
+    '5π/12': 5 * math.pi / 12,
+    'π/2': math.pi / 2
+}
 
-def calculate_parameters(theta, a0, a1, b0=None, b1=None):
+
+def get_closest_special_angle(theta):
+    """Return the name and value of the closest special angle"""
+    closest_name = None
+    closest_value = None
+    min_diff = float('inf')
+
+    for name, value in SPECIAL_ANGLES.items():
+        diff = abs(theta - value)
+        if diff < min_diff:
+            min_diff = diff
+            closest_name = name
+            closest_value = value
+
+    # Only consider it close if within 0.01 radians (~0.57 degrees)
+    if min_diff < 0.01:
+        return closest_name, closest_value
+    return None, None
+
+
+def calculate_parameters(theta, a0, a1, fixed_b0=None, fixed_b1=None):
     """Calculate measurement operators and expectation values"""
     psi = np.array([np.cos(theta), 0, 0, np.sin(theta)])
     sin2theta = np.sin(2 * theta)
 
-    if b0 is None:
-        b0 = np.arctan(sin2theta)
-    if b1 is None:
-        b1 = np.pi - np.arctan(sin2theta)
+    # Use fixed b0 and b1 if provided, otherwise calculate from current theta
+    b0 = fixed_b0 if fixed_b0 is not None else np.arctan(sin2theta)
+    b1 = fixed_b1 if fixed_b1 is not None else np.pi - np.arctan(sin2theta)
 
     mea_A0 = np.cos(a0) * Z + np.sin(a0) * X
     mea_A1 = np.cos(a1) * Z + np.sin(a1) * X
@@ -80,35 +109,31 @@ def verify_formula(params, s_values=[1, -1], t_values=[1, -1]):
     return results
 
 
-def randomize_b0(b0, b1, iteration):
-    """Randomly change b0 while ensuring it doesn't exceed b1 or π/2"""
-    # Determine the maximum possible b0 value (minimum of b1 and π/2)
-    max_b0 = min(b1, math.pi / 2)
-
+def randomize_theta(theta, iteration, max_theta=math.pi / 4):
+    """Randomly increase theta with guaranteed positive results"""
     # Determine change range
     if iteration == 0:
         min_change, max_change = 0.05, 0.2
     else:
         min_change, max_change = 0.06, 0.2
 
-    # Calculate remaining range
-    remaining_range = max_b0 - b0
-
-    # Adjust max_change if needed
+    # Calculate remaining range to max_theta
+    remaining_range = max_theta - theta
     actual_max_change = min(max_change, remaining_range)
 
+    # Ensure we can meet the minimum requirement
     if actual_max_change < min_change:
-        new_b0 = max_b0  # Go directly to maximum
+        new_theta = max_theta  # Go directly to maximum
     else:
         # Generate positive change within required range
         change = random.uniform(min_change, actual_max_change)
-        new_b0 = b0 + change
+        new_theta = theta + change
 
     # Final boundary check
-    if new_b0 > max_b0:
-        new_b0 = max_b0
+    if new_theta > max_theta:
+        new_theta = max_theta
 
-    return new_b0
+    return new_theta
 
 
 def calculate_angle_mod(a, theta, power):
@@ -177,20 +202,31 @@ def check_angle_relations(a0, a1, b0, b1, theta, check_a1=True):
     return condition1 and all_conditions2_met
 
 
-def run_simulation(theta, a0, a1, iterations=5):
-    """Run the simulation with b0 traversal"""
-    # Calculate initial b0
-    sin2theta = np.sin(2 * theta)
-    b0 = np.arctan(sin2theta)
-    b1 = np.pi - np.arctan(sin2theta)
+def run_simulation(initial_theta, a0, a1, iterations=5):
+    """Run the simulation with theta increasing"""
+    theta = initial_theta
+    max_theta = math.pi / 4
+
+    # Calculate fixed b0 and b1 based on initial theta
+    sin2theta = np.sin(2 * initial_theta)
+    fixed_b0 = np.arctan(sin2theta)
+    fixed_b1 = math.pi - np.arctan(sin2theta)
 
     first_iteration = True
+    theta_values = []
 
     for i in range(iterations):
         print(f"\n=== Iteration {i + 1} ===")
-        print(f"Starting b0: {b0:.6f} (arctan(sin2theta) ≤ b0 ≤ min({b1:.6f}, π/2))")
 
-        params = calculate_parameters(theta, a0, a1, b0, b1)
+        # Display theta value and closest special angle
+        closest_name, closest_value = get_closest_special_angle(theta)
+        if closest_name:
+            print(f"Starting theta: {theta:.6f} (close to {closest_name} = {closest_value:.6f})")
+        else:
+            print(f"Starting theta: {theta:.6f} (not close to any standard angle)")
+        print(f"Range: 0 < theta ≤ {max_theta:.6f}")
+
+        params = calculate_parameters(theta, a0, a1, fixed_b0, fixed_b1)
 
         print("\nExpectation values:")
         print(f"A0: {params['A0']:.6f}  A1: {params['A1']:.6f}")
@@ -218,20 +254,63 @@ def run_simulation(theta, a0, a1, iterations=5):
         # 检查角度关系
         print("\n检查角度关系:")
         check_a1 = first_iteration  # 只在第一次迭代检查[a1+]<=[a1-]
-        all_conditions_met = check_angle_relations(a0, a1, b0, b1, theta, check_a1)
+        all_conditions_met = check_angle_relations(a0, a1, params['b0'], params['b1'], theta, check_a1)
         first_iteration = False
 
-        old_b0 = b0
-        b0 = randomize_b0(b0, b1, i)
-        change = b0 - old_b0  # Always positive
+        old_theta = theta
+        theta = randomize_theta(theta, i)
+        change = theta - old_theta  # Always positive
+        theta_values.append(theta)
+
+        # Display new theta value and closest special angle
+        closest_name, closest_value = get_closest_special_angle(theta)
         print(f"\nApplied change: +{change:.6f}")
-        print(f"New b0: {b0:.6f} (arctan(sin2theta) ≤ b0 ≤ min({b1:.6f}, π/2))")
+        if closest_name:
+            print(f"New theta: {theta:.6f} (close to {closest_name} = {closest_value:.6f})")
+        else:
+            print(f"New theta: {theta:.6f} (not close to any standard angle)")
+        print(f"Range: 0 < theta ≤ {max_theta:.6f}")
+
+    # Ensure we have a theta=pi/4 case at the end
+    if not math.isclose(theta, max_theta, rel_tol=1e-9):
+        print("\n=== Final iteration (theta=π/4) ===")
+        theta = max_theta
+        print(f"Setting theta to π/4: {theta:.6f}")
+
+        params = calculate_parameters(theta, a0, a1, fixed_b0, fixed_b1)
+
+        print("\nExpectation values:")
+        print(f"A0: {params['A0']:.6f}  A1: {params['A1']:.6f}")
+        print(f"B0: {params['B0']:.6f}  B1: {params['B1']:.6f}")
+        print(f"E00: {params['E00']:.6f}  E01: {params['E01']:.6f}")
+        print(f"E10: {params['E10']:.6f}  E11: {params['E11']:.6f}")
+
+        print("\nFormula verification:")
+        results = verify_formula(params)
+        for r in results:
+            s, t, *rest = r
+            print(f"\nFor s={s}, t={t}:")
+
+            if isinstance(rest[0], str):
+                print(rest[0])
+            else:
+                value, is_valid, sA0B0, tA1B0, sA0B1, tA1B1 = rest
+                print(f"Final value: {value:.6f} {'≈ π' if is_valid else '≠ π'}")
+                print("Intermediate terms:")
+                print(f"[sA0B0]: {sA0B0:.6f}")
+                print(f"[tA1B0]: {tA1B0:.6f}")
+                print(f"[sA0B1]: {sA0B1:.6f}")
+                print(f"[tA1B1]: {tA1B1:.6f}")
+
+        # 检查角度关系
+        print("\n检查角度关系:")
+        check_angle_relations(a0, a1, params['b0'], params['b1'], theta, False)
 
 
 # Set initial parameters
-theta = np.pi / 6
-a0 = 0  # Fixed a0
-a1 = np.pi / 2  # Fixed a1
+initial_theta = math.pi / 12
+a0 = 0  # This remains fixed now
+a1 = math.pi / 2
 
 # Run the simulation
-run_simulation(theta, a0, a1, iterations=5)
+run_simulation(initial_theta, a0, a1, iterations=5)

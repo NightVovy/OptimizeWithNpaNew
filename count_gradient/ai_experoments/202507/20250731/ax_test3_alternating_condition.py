@@ -80,10 +80,9 @@ def verify_formula(params, s_values=[1, -1], t_values=[1, -1]):
     return results
 
 
-def randomize_b0(b0, b1, iteration):
-    """Randomly change b0 while ensuring it doesn't exceed b1 or π/2"""
-    # Determine the maximum possible b0 value (minimum of b1 and π/2)
-    max_b0 = min(b1, math.pi / 2)
+def randomize_a0(a0, a1, iteration):
+    """Randomly change a0 with guaranteed positive results"""
+    max_abs = abs(a1)
 
     # Determine change range
     if iteration == 0:
@@ -91,24 +90,23 @@ def randomize_b0(b0, b1, iteration):
     else:
         min_change, max_change = 0.06, 0.2
 
-    # Calculate remaining range
-    remaining_range = max_b0 - b0
-
-    # Adjust max_change if needed
+    # Calculate maximum possible increase (since we only allow positive a0)
+    remaining_range = max_abs - a0  # a0 is always positive now
     actual_max_change = min(max_change, remaining_range)
 
+    # Ensure we can meet the minimum requirement
     if actual_max_change < min_change:
-        new_b0 = max_b0  # Go directly to maximum
+        new_a0 = max_abs  # Go directly to maximum
     else:
         # Generate positive change within required range
         change = random.uniform(min_change, actual_max_change)
-        new_b0 = b0 + change
+        new_a0 = a0 + change
 
     # Final boundary check
-    if new_b0 > max_b0:
-        new_b0 = max_b0
+    if new_a0 > max_abs:
+        new_a0 = max_abs
 
-    return new_b0
+    return new_a0
 
 
 def calculate_angle_mod(a, theta, power):
@@ -178,19 +176,16 @@ def check_angle_relations(a0, a1, b0, b1, theta, check_a1=True):
 
 
 def run_simulation(theta, a0, a1, iterations=5):
-    """Run the simulation with b0 traversal"""
-    # Calculate initial b0
-    sin2theta = np.sin(2 * theta)
-    b0 = np.arctan(sin2theta)
-    b1 = np.pi - np.arctan(sin2theta)
-
+    """Run the simulation with a0 strictly positive"""
+    # Ensure initial a0 is positive
+    a0 = abs(a0)
     first_iteration = True
 
     for i in range(iterations):
         print(f"\n=== Iteration {i + 1} ===")
-        print(f"Starting b0: {b0:.6f} (arctan(sin2theta) ≤ b0 ≤ min({b1:.6f}, π/2))")
+        print(f"Starting a0: {a0:.6f} (0 < a0 ≤ {abs(a1):.6f})")
 
-        params = calculate_parameters(theta, a0, a1, b0, b1)
+        params = calculate_parameters(theta, a0, a1)
 
         print("\nExpectation values:")
         print(f"A0: {params['A0']:.6f}  A1: {params['A1']:.6f}")
@@ -218,20 +213,20 @@ def run_simulation(theta, a0, a1, iterations=5):
         # 检查角度关系
         print("\n检查角度关系:")
         check_a1 = first_iteration  # 只在第一次迭代检查[a1+]<=[a1-]
-        all_conditions_met = check_angle_relations(a0, a1, b0, b1, theta, check_a1)
+        all_conditions_met = check_angle_relations(a0, a1, params['b0'], params['b1'], theta, check_a1)
         first_iteration = False
 
-        old_b0 = b0
-        b0 = randomize_b0(b0, b1, i)
-        change = b0 - old_b0  # Always positive
+        old_a0 = a0
+        a0 = randomize_a0(a0, a1, i)
+        change = a0 - old_a0  # Always positive
         print(f"\nApplied change: +{change:.6f}")
-        print(f"New b0: {b0:.6f} (arctan(sin2theta) ≤ b0 ≤ min({b1:.6f}, π/2))")
+        print(f"New a0: {a0:.6f} (0 < a0 ≤ {abs(a1):.6f})")
 
 
 # Set initial parameters
 theta = np.pi / 6
-a0 = 0  # Fixed a0
-a1 = np.pi / 2  # Fixed a1
+initial_a0 = 0  # Will be converted to positive
+a1 = np.pi / 2
 
 # Run the simulation
-run_simulation(theta, a0, a1, iterations=5)
+run_simulation(theta, initial_a0, a1, iterations=5)

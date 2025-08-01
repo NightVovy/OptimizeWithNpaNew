@@ -5,8 +5,12 @@ X = np.array([[0, 1], [1, 0]])
 Z = np.array([[1, 0], [0, -1]])
 I = np.eye(2)
 
+theta = np.pi / 6
+a0 = 0
+a1 = np.pi / 2
 
-def calculate_and_verify(theta=np.pi / 6, a0=0, a1=np.pi / 2, b0=None, b1=None):
+
+def calculate_and_verify(theta, a0, a1, b0=None, b1=None):
     """Calculate measurement operators and expectation values using both methods and verify additional expressions"""
     # Define quantum state |psi⟩ = cosθ|00⟩ + sinθ|11⟩
     psi = np.array([np.cos(theta), 0, 0, np.sin(theta)])
@@ -23,14 +27,14 @@ def calculate_and_verify(theta=np.pi / 6, a0=0, a1=np.pi / 2, b0=None, b1=None):
     if b0 is None:
         b0 = np.arctan(sin2theta)
     if b1 is None:
-        b1 = - np.arctan(sin2theta)
+        b1 = np.pi - np.arctan(sin2theta)
 
     # Method 1: Using matrix operations
     # Calculate measurement operators
     mea_A0 = np.cos(a0) * Z + np.sin(a0) * X
     mea_A1 = np.cos(a1) * Z + np.sin(a1) * X
     mea_B0 = np.cos(b0) * Z + np.sin(b0) * X
-    mea_B1 = np.cos(b1) * Z + np.sin(b1) * X
+    mea_B1 = - np.cos(b1) * Z - np.sin(b1) * X  # !
 
     # Tensor product helper
     def tensor_op(op1, op2):
@@ -56,12 +60,12 @@ def calculate_and_verify(theta=np.pi / 6, a0=0, a1=np.pi / 2, b0=None, b1=None):
     A0_2 = cos2theta * np.cos(a0)
     A1_2 = cos2theta * np.cos(a1)
     B0_2 = cos2theta * np.cos(b0)
-    B1_2 = cos2theta * np.cos(b1)
+    B1_2 = - cos2theta * np.cos(b1) # !
 
     E00_2 = np.cos(a0) * np.cos(b0) + sin2theta * np.sin(a0) * np.sin(b0)
-    E01_2 = np.cos(a0) * np.cos(b1) + sin2theta * np.sin(a0) * np.sin(b1)
+    E01_2 = - np.cos(a0) * np.cos(b1) - sin2theta * np.sin(a0) * np.sin(b1)
     E10_2 = np.cos(a1) * np.cos(b0) + sin2theta * np.sin(a1) * np.sin(b0)
-    E11_2 = np.cos(a1) * np.cos(b1) + sin2theta * np.sin(a1) * np.sin(b1)
+    E11_2 = - np.cos(a1) * np.cos(b1) - sin2theta * np.sin(a1) * np.sin(b1)  # !
 
     # Prepare results for comparison
     method1 = {
@@ -84,7 +88,7 @@ def calculate_and_verify(theta=np.pi / 6, a0=0, a1=np.pi / 2, b0=None, b1=None):
 
 
 # Calculate with default parameters
-method1, method2, expr1_m1, expr1_m2, expr2, alpha = calculate_and_verify()
+method1, method2, expr1_m1, expr1_m2, expr2, alpha = calculate_and_verify(theta, a0, a1)
 
 # Print comparison table
 print("Comparison of two calculation methods:")
