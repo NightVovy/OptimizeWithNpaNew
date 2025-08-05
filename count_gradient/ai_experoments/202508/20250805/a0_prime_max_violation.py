@@ -6,11 +6,9 @@ Z = np.array([[1, 0], [0, -1]])
 I = np.eye(2)
 
 theta = np.pi / 6
-b0 = 0
-b1 = np.pi / 2
 
 
-def calculate_and_verify(theta, b0, b1, a0=None, a1=None):
+def calculate_and_verify(theta):
     """Calculate measurement operators and expectation values using both methods and verify additional expressions"""
     # Define quantum state |psi⟩ = cosθ|00⟩ + sinθ|11⟩
     psi = np.array([np.cos(theta), 0, 0, np.sin(theta)])
@@ -20,21 +18,24 @@ def calculate_and_verify(theta, b0, b1, a0=None, a1=None):
     sin2theta = np.sin(2 * theta)
     tan2theta = np.tan(2 * theta)
 
+    # Calculate mu
+    mu = np.arctan(sin2theta)
+
+    # Set measurement angles according to new settings
+    a0 = 0
+    a1 = 2 * mu
+    b0 = mu
+    b1 = np.pi / 2 + mu
+
     # Calculate alpha
     alpha = 2 / np.sqrt(1 + 2 * (tan2theta) ** 2)
-
-    # Calculate a0 and a1 if not provided
-    if a0 is None:
-        a0 = -np.arctan(sin2theta)
-    if a1 is None:
-        a1 = np.arctan(sin2theta)
 
     # Method 1: Using matrix operations
     # Calculate measurement operators
     mea_A0 = np.cos(a0) * Z + np.sin(a0) * X
     mea_A1 = np.cos(a1) * Z + np.sin(a1) * X
     mea_B0 = np.cos(b0) * Z + np.sin(b0) * X
-    mea_B1 = np.cos(b1) * Z + np.sin(b1) * X
+    mea_B1 = - np.cos(b1) * Z - np.sin(b1) * X
 
     # Tensor product helper
     def tensor_op(op1, op2):
@@ -79,16 +80,16 @@ def calculate_and_verify(theta, b0, b1, a0=None, a1=None):
     }
 
     # Calculate verification expressions for both methods
-    expr1_method1 = alpha * B0 + E00 - E01 + E10 + E11
-    expr1_method2 = alpha * B0_2 + E00_2 - E01_2 + E10_2 + E11_2
+    expr1_method1 = alpha * A0 + E00 + E01 + E10 - E11
+    expr1_method2 = alpha * A0_2 + E00_2 + E01_2 + E10_2 - E11_2
 
     expr2 = np.sqrt(8 + 2 * alpha ** 2)
 
     return method1, method2, expr1_method1, expr1_method2, expr2, alpha
 
 
-# Calculate with default parameters
-method1, method2, expr1_m1, expr1_m2, expr2, alpha = calculate_and_verify(theta, b0, b1)
+# Calculate with new measurement settings
+method1, method2, expr1_m1, expr1_m2, expr2, alpha = calculate_and_verify(theta)
 
 # Print comparison table
 print("Comparison of two calculation methods:")
@@ -102,7 +103,7 @@ for key in method1:
 
 print("\nAdditional verification:")
 print(f"alpha = {alpha:.8f}")
-print(f"alpha*(B0) + E00 + E01 - E10 + E11:")
+print(f"alpha*(?) + E00 + E01 + E10 - E11:")
 print(f"  Method 1: {expr1_m1:.8f}")
 print(f"  Method 2: {expr1_m2:.8f}")
 print(f"  Difference: {abs(expr1_m1 - expr1_m2):.2e}")
