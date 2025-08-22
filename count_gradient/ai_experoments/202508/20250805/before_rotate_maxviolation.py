@@ -22,10 +22,10 @@ def calculate_and_verify(theta):
     mu = np.arctan(sin2theta)
 
     # Set measurement angles according to new settings
-    a0 = 0
-    a1 = 2 * mu
-    b0 = mu
-    b1 = np.pi / 2 + mu
+    a0 = - mu
+    a1 = mu
+    b0 = 0
+    b1 = np.pi / 2
 
     # Calculate alpha
     alpha = 2 / np.sqrt(1 + 2 * (tan2theta) ** 2)
