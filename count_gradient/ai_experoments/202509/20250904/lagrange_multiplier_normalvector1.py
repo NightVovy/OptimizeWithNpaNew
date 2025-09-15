@@ -75,7 +75,7 @@ p = np.array([
 ])
 
 # 在这里设置lambda值，方便修改
-lambdas = [1, 1, 1, 1]
+lambdas = [0.25, 0.25, 0.25, 0.25]
 
 # 计算法向量和各个梯度
 normal_vector, all_gradients = compute_normal_vector(p, lambdas)
