@@ -62,12 +62,20 @@ pd_b0 = [
 
 # 代入参数值
 values = {
-    theta: sp.pi/6,
+    theta: sp.pi/4,
     a0: 0,
-    a1: 1.42744876,
-    b0: 0.71372438,
-    b1: 2.28452071
+    a1: sp.pi/2,
+    b0: sp.pi/4,
+    b1: 3 * sp.pi/4
 }
+# values = {
+#     theta: sp.pi/6,
+#     a0: 0,
+#     a1: 1.42744876,
+#     b0: 0.71372438,
+#     b1: 2.28452071
+# }
+
 
 # 向量转数值
 def vector_to_numeric(vec, values):
@@ -91,9 +99,9 @@ null_space_basis = Vh[rank:, :].T
 ortho_dim = null_space_basis.shape[1]
 
 # 设置x、y、z的值（可直接修改）
-x = 5
-y = 6
-z = 7
+x = 0.33
+y = 0.33
+z = 0.34
 
 # 计算beta
 if ortho_dim >= 3:

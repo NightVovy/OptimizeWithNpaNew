@@ -93,15 +93,17 @@ def calculate_and_verify(theta):
     # Calculate verification expressions for both methods
     expr1_method1 = alpha * A0 + E00 + E01 + E10 - E11
 
+    expr1_method2 = alpha * B0 + E00 + E11 + E10 - E01
+
     expr1_method3 = alpha * B0_r + E10_r + E00_r + E11_r - E01_r
 
     expr2 = np.sqrt(8 + 2 * alpha ** 2)
 
-    return method1, method3, expr1_method1, expr1_method3, expr2, alpha
+    return method1, method3, expr1_method1, expr1_method2, expr1_method3, expr2, alpha
 
 
 # Calculate with new measurement settings
-method1, method3, expr1_m1, expr1_m3, expr2, alpha = calculate_and_verify(theta)
+method1, method3, expr1_m1, expr1_m2, expr1_m3, expr2, alpha = calculate_and_verify(theta)
 
 # Print comparison table
 print("Comparison of calculation methods:")
@@ -116,6 +118,7 @@ print("\nAdditional verification:")
 print(f"alpha = {alpha:.8f}")
 print(f"alpha*(B0) + E00 + E10 + E11 - E01:")
 print(f"  Method 1: {expr1_m1:.8f}")
+print(f"  Method 2: {expr1_m2:.8f}")
 print(f"  Method 3: {expr1_m3:.8f}")
 
 print(f"\nsqrt(8 + 2*alpha^2) = {expr2:.8f}")

@@ -131,8 +131,3 @@ print("="*60)
 print("偏导数验证:")
 print("="*60)
 
-# 检查一些基本的偏导数关系
-print("验证几个典型的偏导数:")
-print(f"∂(cos(2θ)cos(a0))/∂theta = {sp.diff(sp.cos(2*theta)*sp.cos(a0), theta)}")
-print(f"∂(cos(2θ)cos(a0))/∂a0 = {sp.diff(sp.cos(2*theta)*sp.cos(a0), a0)}")
-print(f"∂(sin(2θ)sin(a0)sin(b0))/∂theta = {sp.diff(sp.sin(2*theta)*sp.sin(a0)*sp.sin(b0), theta)}")
