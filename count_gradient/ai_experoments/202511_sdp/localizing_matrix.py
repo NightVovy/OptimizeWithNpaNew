@@ -55,7 +55,7 @@ def build_localizing_matrix_constraint(G: cp.Variable, ind_catalog: list, m_vec:
         return t
 
     # ==========================================================================
-    # 3. 基础索引定义 (根据 m_vec 推断)
+    # 3. 基础索引定义 (根据 m_vec 推断) 当然这里的B0B1B2实际上是F0F1F2
     # ==========================================================================
     # 假设 Alice 有 MA 个输入，Bob 的索引从 MA 开始
     # B0 -> MA, B1 -> MA+1, B2 -> MA+2
@@ -201,7 +201,7 @@ def build_localizing_matrix_constraint(G: cp.Variable, ind_catalog: list, m_vec:
     # 注意: F0F2 前是负号
     d_B0B2B1B2 = (16 * term_F0F2_F1F2
                   - 8 * (term_F0_F2F1 + term_F0_F1F2 + term_F2_F1F2)
-                  + 4 * (-term_F0F2 + term_F0F1 + term_F2F1 + term_F1F2)
+                  + 4 * (term_F0F1 + term_F2F1 + term_F1F2)
                   - 2 * (term_F0 + term_F1)
                   + term_I)
     # d_B1B2B1B0
@@ -226,7 +226,7 @@ def build_localizing_matrix_constraint(G: cp.Variable, ind_catalog: list, m_vec:
     # 注意: F1F2 前是负号
     d_B1B2B0B2 = (16 * term_F1F2_F0F2
                   - 8 * (term_F1_F2F0 + term_F1_F0F2 + term_F2_F0F2)
-                  + 4 * (-term_F1F2 + term_F1F0 + term_F2F0 + term_F0F2)
+                  + 4 * (term_F1F0 + term_F2F0 + term_F0F2)
                   - 2 * (term_F1 + term_F0)
                   + term_I)
     # d_B1B2B1B2

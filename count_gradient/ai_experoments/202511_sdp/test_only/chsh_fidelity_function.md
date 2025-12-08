@@ -35,13 +35,13 @@ if term_E0E1E0_F0F1F0 is None:
 -------------------------------------------------
 
 
-func = 1/2 + CHSH * 1/(2*np.sqrt(2))
+func = 1/2 + <CHSH> * 1/(2*np.sqrt(2))
     - 1/8 * (d_A0A1B0B1 - d_A0A1B1B0 - d_A1A0B0B1 + d_A1A0B1B0)
     + 1/(8*np.sqrt(2)) * (3 * d_A1B1 - 2 * d_A0B1 - 2 * d_A1B0
         + d_A0A1A0B1 - 2 * d_A0A1A0B0 + d_A1B0B1B0 - 2 * d_A0B0B1B0
         - d_A0A1A0B0B1B0)     
 
-
+d_A0B0 = 4 * term_E0_F0 - 2 * term_E0 - 2 * term_F0 + term_I
 d_A1B1 = 4 * term_E1F1 - 2 * term_E1 - 2 * term_F1 + term_I
 d_A0B1 = 4 * term_E0F1 - 2 * term_E0 - 2 * term_F1 + term_I
 d_A1B0 = 4 * term_E1F0 - 2 * term_E1 - 2 * term_F0 + term_I
