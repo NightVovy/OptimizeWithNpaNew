@@ -122,12 +122,13 @@ def npa_constraints(cg: np.ndarray, desc: Union[List[int], np.ndarray], k: Union
     constraints.append(G >> 0)
     # 2. 归一化 (强制 I=1)
     constraints.append(G[0, 0] == 1)
-    # # 3. 对角线约束
-    # constraints.append(cp.diag(G) <= 1)
-    # constraints.append(cp.diag(G) >= 0)
-    # # 4. 全局数值笼子
-    # constraints.append(G <= 1.0)
-    # constraints.append(G >= -1.0)
+    # 下面的已经注释掉好几次了...
+    # 3. 对角线约束
+    constraints.append(cp.diag(G) <= 1)
+    constraints.append(cp.diag(G) >= 0)
+    # 4. 全局数值笼子
+    constraints.append(G <= 1.0)
+    constraints.append(G >= -1.0)
 
 
     res_catalog: List[np.ndarray] = []

@@ -2,31 +2,26 @@ import numpy as np
 import cvxpy as cp
 import sys
 
-# 导入依赖
+# ==============================================================================
+# [导入依赖] 扁平结构 - 直接导入
+# ==============================================================================
 try:
-    # [修改点 1] 导入支持自定义基底的 NPA 版本
     from NPAHierarchy_Custom import npa_constraints
     from locate_gamma_2 import get_gamma_element
     from localizing_matrix import build_localizing_matrix_constraint
 except ImportError as e:
     print(f"导入错误: {e}")
-    print("请确保 NPAHierarchy_Custom.py 已保存并在当前目录下。")
+    print("请确保 NPAHierarchy_Custom.py, locate_gamma_2.py, localizing_matrix.py 在当前目录下。")
     sys.exit(1)
 
 
 # ==============================================================================
-# 1. 工具函数：系数转换与经典界计算
+# 1. 工具函数
 # ==============================================================================
 def convert_vector_to_matrix(vec):
-    """
-    将 8 元素向量转换为 3x4 Full Correlation 系数矩阵。
-    M_fc (3 rows, 4 cols), B2 列为 0。
-    """
     if len(vec) != 8:
         raise ValueError("系数向量必须包含 8 个元素。")
-
     A0, A1, B0, B1, A0B0, A0B1, A1B0, A1B1 = vec
-
     M = np.zeros((3, 4))
     M[0, 1], M[0, 2] = B0, B1
     M[1, 0] = A0
@@ -54,7 +49,7 @@ def calculate_classical_bound(coeff_matrix):
 
 
 # ==============================================================================
-# 2. 约束构建器：通用 Bell 不等式
+# 2. 约束构建器
 # ==============================================================================
 def build_general_bell_expression(G, ind_catalog, m_vec, coeff_matrix):
     expr = 0
@@ -93,11 +88,12 @@ def build_general_bell_expression(G, ind_catalog, m_vec, coeff_matrix):
 
 
 # ==============================================================================
-# 3. 目标函数构建器：Tilted CHSH Fidelity
+# 3. 目标函数构建器 (增强版：返回调试字典)
 # ==============================================================================
 def build_fidelity_objective(G, ind_catalog, m_vec, theta):
     """
     构建 Tilted CHSH 场景下的 Fidelity 目标函数。
+    返回: (func, part_1, part_2, part_3, debug_dict)
     """
     cos2theta = np.cos(2 * theta)
     sin2theta = np.sin(2 * theta)
@@ -105,7 +101,7 @@ def build_fidelity_objective(G, ind_catalog, m_vec, theta):
     def get_term(alice_seq, bob_seq):
         val = get_gamma_element(G, ind_catalog, m_vec, alice_seq, bob_seq)
         if val is None:
-            raise ValueError(f"目标函数构建失败: Term <A{alice_seq} B{bob_seq}> not found。请检查基底是否完备。")
+            raise ValueError(f"目标函数构建失败: Term <A{alice_seq} B{bob_seq}> not found。")
         return val
 
     # 索引定义
@@ -114,63 +110,40 @@ def build_fidelity_objective(G, ind_catalog, m_vec, theta):
     idx_B0, idx_B1, idx_B2 = MA, MA + 1, MA + 2
     idx_I = []
 
-    # ==========================================================================
-    # (D) 投影算子组合 (Terms)
-    # ==========================================================================
-    # 注意：这里的组合必须包含在 custom_basis 生成的 Gamma 矩阵中
-
-    # --- 3x3 ---
+    # --- 获取 Terms ---
     term_E0E1E0_F0F2F0 = get_term([idx_A0, idx_A1, idx_A0], [idx_B0, idx_B2, idx_B0])
-
-    # --- 3x2 ---
     term_E0E1E0_F0F2 = get_term([idx_A0, idx_A1, idx_A0], [idx_B0, idx_B2])
     term_E0E1E0_F2F0 = get_term([idx_A0, idx_A1, idx_A0], [idx_B2, idx_B0])
-
     term_E0E1_F0F2F0 = get_term([idx_A0, idx_A1], [idx_B0, idx_B2, idx_B0])
     term_E1E0_F0F2F0 = get_term([idx_A1, idx_A0], [idx_B0, idx_B2, idx_B0])
-
-    # --- 1+3 / 2+2 / 3+1 ---
     term_E0E1E0_F2 = get_term([idx_A0, idx_A1, idx_A0], [idx_B2])
     term_E1_F0F2F0 = get_term([idx_A1], [idx_B0, idx_B2, idx_B0])
-
     term_E0E1_F0F2 = get_term([idx_A0, idx_A1], [idx_B0, idx_B2])
     term_E0E1_F2F0 = get_term([idx_A0, idx_A1], [idx_B2, idx_B0])
     term_E1E0_F0F2 = get_term([idx_A1, idx_A0], [idx_B0, idx_B2])
     term_E1E0_F2F0 = get_term([idx_A1, idx_A0], [idx_B2, idx_B0])
-
-    # --- 2+1 / 1+2 ---
     term_E0E1_F0 = get_term([idx_A0, idx_A1], [idx_B0])
     term_E0E1_F2 = get_term([idx_A0, idx_A1], [idx_B2])
     term_E1E0_F0 = get_term([idx_A1, idx_A0], [idx_B0])
     term_E1E0_F2 = get_term([idx_A1, idx_A0], [idx_B2])
-
     term_E0_F0F2 = get_term([idx_A0], [idx_B0, idx_B2])
     term_E0_F2F0 = get_term([idx_A0], [idx_B2, idx_B0])
     term_E1_F0F2 = get_term([idx_A1], [idx_B0, idx_B2])
     term_E1_F2F0 = get_term([idx_A1], [idx_B2, idx_B0])
-
-    # --- 3 (Pure Terms) ---
     term_E0E1E0 = get_term([idx_A0, idx_A1, idx_A0], idx_I)
     term_F0F2F0 = get_term(idx_I, [idx_B0, idx_B2, idx_B0])
-
-    # --- 2 / 1+1 ---
     term_E1_F2 = get_term([idx_A1], [idx_B2])
     term_E0_F0 = get_term([idx_A0], [idx_B0])
     term_E0_F2 = get_term([idx_A0], [idx_B2])
     term_E1_F0 = get_term([idx_A1], [idx_B0])
-
     term_E0E1 = get_term([idx_A0, idx_A1], idx_I)
     term_E1E0 = get_term([idx_A1, idx_A0], idx_I)
-
     term_F0F2 = get_term(idx_I, [idx_B0, idx_B2])
     term_F2F0 = get_term(idx_I, [idx_B2, idx_B0])
-
-    # --- 1 (Pure Singles) ---
     term_E0 = get_term([idx_A0], idx_I)
     term_E1 = get_term([idx_A1], idx_I)
     term_F0 = get_term(idx_I, [idx_B0])
     term_F2 = get_term(idx_I, [idx_B2])
-
     term_I = get_term(idx_I, idx_I)
 
     # --- (E) 可观测量组合 ---
@@ -211,7 +184,7 @@ def build_fidelity_objective(G, ind_catalog, m_vec, theta):
     d_A0A1A0B0B2B0 = 64 * (term_E0E1E0_F0F2F0) \
                      - 32 * (term_E0E1E0_F0F2 + term_E0E1E0_F2F0 + term_E0E1_F0F2F0 + term_E1E0_F0F2F0) \
                      + 16 * (
-                                 term_E0E1E0_F2 + term_E1_F0F2F0 + term_E0E1_F0F2 + term_E0E1_F2F0 + term_E1E0_F0F2 + term_E1E0_F2F0) \
+                             term_E0E1E0_F2 + term_E1_F0F2F0 + term_E0E1_F0F2 + term_E0E1_F2F0 + term_E1E0_F0F2 + term_E1E0_F2F0) \
                      - 8 * (term_E0E1E0 + term_F0F2F0 + term_E0E1_F2 + term_E1E0_F2 + term_E1_F0F2 + term_E1_F2F0) \
                      + 4 * (term_E0E1 + term_E1E0 + term_F0F2 + term_F2F0 + term_E1_F2) \
                      - 2 * (term_E1 + term_F2) + term_I
@@ -220,7 +193,7 @@ def build_fidelity_objective(G, ind_catalog, m_vec, theta):
     # 组装最终 func
     # ==========================================================================
 
-    part_1 = 0.25 * (1 + d_A0B0 + cos2theta * (d_A0 + d_B0))  # 这里是 0.5 (1/2) 还是 0.25? 原公式是 1/2
+    part_1 = 0.25 * (1 + d_A0B0 + cos2theta * (d_A0 + d_B0))
 
     part_2 = (sin2theta / 16) * (
             d_A1B2
@@ -229,7 +202,7 @@ def build_fidelity_objective(G, ind_catalog, m_vec, theta):
             + d_A0A1A0B0B2B0
     )
 
-    part_3 = (sin2theta / 16) * (  # 应有个负号 有改动【可能正号才是对的】
+    part_3 = (sin2theta / 16) * (
             d_A0A1B0B2
             - d_A0A1B2B0
             - d_A1A0B0B2
@@ -237,7 +210,17 @@ def build_fidelity_objective(G, ind_catalog, m_vec, theta):
     )
 
     func = part_1 + part_2 + part_3
-    return part_1, part_2, part_3
+
+    # [新增] 收集调试信息 (Dictionary of Expressions)
+    debug_dict = {
+        "d_A0": d_A0, "d_B0": d_B0, "d_A0B0": d_A0B0,
+        "d_A1B2": d_A1B2, "d_A1B0B2B0": d_A1B0B2B0,
+        "d_A0A1A0B2": d_A0A1A0B2, "d_A0A1B0B2": d_A0A1B0B2,
+        "d_A0A1B2B0": d_A0A1B2B0, "d_A1A0B0B2": d_A1A0B0B2,
+        "d_A1A0B2B0": d_A1A0B2B0, "d_A0A1A0B0B2B0": d_A0A1A0B0B2B0
+    }
+
+    return func, part_1, part_2, part_3, debug_dict
 
 
 # ==============================================================================
@@ -246,7 +229,6 @@ def build_fidelity_objective(G, ind_catalog, m_vec, theta):
 def calculate_fidelity(target_val: float, coeff_matrix: np.ndarray, desc: np.ndarray, theta: float):
     m_vec = desc[2:4]
 
-    # 1. 根据 theta 反推 alpha
     sin_2theta = np.sin(2 * theta)
     cos_2theta = np.cos(2 * theta)
     alpha = 2 * cos_2theta / np.sqrt(1 + sin_2theta ** 2)
@@ -255,53 +237,34 @@ def calculate_fidelity(target_val: float, coeff_matrix: np.ndarray, desc: np.nda
     print(f"[Calc Params] Theta={theta:.4f} -> Alpha={alpha:.4f}, Mu={mu:.4f}")
 
     # ==========================================================================
-    # [修改点 2] 定义自定义基底列表 (Custom Basis)
+    # 自定义基底列表 (User provided)
     # ==========================================================================
-    # 索引映射: A0->0, A1->1; B0->2, B1->3, B2->4
-
     custom_basis_list = [
         # --- Level 0 ---
         (),
-
         # --- Level 1 (Singles) ---
         (0,), (1,),  # A0, A1
         (2,), (3,), (4,),  # B0, B1, B2
-
         # --- Level 2 (Local Pairs) ---
         (0, 1), (1, 0),  # A0A1, A1A0
         (2, 3), (3, 2),  # B0B1...
         (2, 4), (4, 2),  # B0B2... (关键！)
         (3, 4), (4, 3),
-
         # --- Level 1.5 (Mixed Pairs - 关键补充！) ---
-        # 显式加入这些项能极大增强对 Correlations 的控制力
         (0, 2), (0, 3), (0, 4),  # A0B0, A0B1, A0B2
         (1, 2), (1, 3), (1, 4),  # A1B0, A1B1, A1B2
-
         # --- Level 3 (Specific Targets) ---
         (0, 1, 0),  # A0 A1 A0
         (2, 4, 2)  # B0 B2 B0 (关键！)
     ]
 
-    # 2. 构建 NPA 变量 (使用自定义基底)
+    # 构建 NPA 变量
     dummy_cg = np.zeros((3, 4))
-
-    # 调用 custom 版本，传入 custom_basis
     G, constraints, ind_catalog = npa_constraints(
-        dummy_cg,
-        desc,
-        custom_basis=custom_basis_list,  # 传入列表
-        enforce_data=False
+        dummy_cg, desc, custom_basis=custom_basis_list, enforce_data=False
     )
-    # ... 调用 npa_constraints 后 ...
     print(f"\n[Debug] Gamma Matrix Shape: {G.shape}")
     print(f"[Debug] Custom Basis Length: {len(custom_basis_list)}")
-
-    # 验证是否只生成了预期的变量
-    # 如果 shape[0] 远大于 len(custom_basis)+1，说明 NPAHierarchy_Custom 里的筛选逻辑没生效
-    if G.shape[0] != len(custom_basis_list):
-        print("[Warning] Gamma 矩阵维度与自定义基底长度不匹配！请检查筛选逻辑。")
-    # print(f"[Info] Gamma 矩阵维度: {G.shape}")
 
     # 3. [Constraint 1] Bell 不等式约束
     bell_expr = build_general_bell_expression(G, ind_catalog, m_vec, coeff_matrix)
@@ -317,73 +280,76 @@ def calculate_fidelity(target_val: float, coeff_matrix: np.ndarray, desc: np.nda
 
     # 5. 构造 Fidelity 目标
     try:
-        part_1, part_2, part_3 = build_fidelity_objective(G, ind_catalog, m_vec, theta)
-        func = part_1 + part_2 + part_3
+        # [修改] 接收 debug_dict
+        func, part_1, part_2, part_3, debug_dict = build_fidelity_objective(G, ind_catalog, m_vec, theta)
     except ValueError as e:
         print(f"目标函数构建失败: {e}")
         return None
 
-    # 5.5. 强制B2的角度和A1正相关
-    # ==========================================================================
-    # [关键补丁] 打破符号对称性
-    # 强制 B2 模拟 X (而不是 -X)。物理上 <A1 B2> 应该 > 0。
-    # ==========================================================================
-
-    # 1. 获取 A1 和 B2 的关联项期望值 <A1 B2>
-    # 公式: <A1 B2> = 4<E1 F2> - 2<E1> - 2<F2> + 1
+    # 5.5. 强制 B2 的角度和 A1 正相关 (打破符号对称性)
     term_E1F2 = get_gamma_element(G, ind_catalog, m_vec, [1], [4])  # A1(idx1), B2(idx4)
     term_E1 = get_gamma_element(G, ind_catalog, m_vec, [1], [])
     term_F2 = get_gamma_element(G, ind_catalog, m_vec, [], [4])
     term_I_ = get_gamma_element(G, ind_catalog, m_vec, [], [])
-
     val_A1B2 = 4 * term_E1F2 - 2 * term_E1 - 2 * term_F2 + term_I_
+    constraints.append(val_A1B2 >= 0.8)
 
-    # 2. 添加约束
-    constraints.append(val_A1B2 >= 0)
+    # 获取对应的 d 变量 (利用之前 build_fidelity 返回的 debug_dict)
+    d_val_A1B2 = debug_dict["d_A1B2"]
+    d_val_4body = debug_dict["d_A1B0B2B0"]
 
+    # 约束: <A1 ZXZ> <= -<A1 X> + 误差
+    # 这直接禁止了 +0.725 这种情况出现
+    constraints.append(d_val_4body <= -d_val_A1B2 + 0.1)
 
-    # 6. 求解 有改动
-    print(f"Solving SDP for Target={target_val:.4f}...")
-    # prob = cp.Problem(cp.Minimize(func), constraints)
-    prob = cp.Problem(cp.Maximize(func), constraints)
+    # ==========================================================================
+    # 6. 双重求解逻辑 (Maximize AND Minimize)
+    # ==========================================================================
 
-    try:
-        # 推荐使用 MOSEK，如果不行换 CVXOPT
-        prob.solve(solver=cp.MOSEK, verbose=True)
-    except cp.SolverError:
-        return None
+    def solve_routine(sense_name):
+        print(f"\n>>> Solving SDP for [{sense_name}] Fidelity...")
 
-    # [调试打印]
-    # print(f"Solver Status: {prob.status}")
-    print(f"\n[Debug] Solver Status: {prob.status}")
-    print(f"[Debug] Optimal Value (Fidelity): {prob.value}")
+        if sense_name == "Maximize":
+            prob = cp.Problem(cp.Maximize(func), constraints)
+        else:
+            prob = cp.Problem(cp.Minimize(func), constraints)
 
-    if G.value is None:
-        print("[Error] G.value is None. 求解失败。")
-        return None
+        try:
+            # 推荐使用 MOSEK，如果不行换 CVXOPT
+            prob.solve(solver=cp.MOSEK, verbose=False)  # 设为 False 减少刷屏，只看结果
+        except cp.SolverError:
+            print(f"[{sense_name}] Solver Error")
+            return None
 
-    # 检查归一化: <I> 必须为 1
-    norm_val = G.value[0, 0]
-    print(f"[Debug] Normalization G[0,0]: {norm_val:.6f}")
-    if abs(norm_val - 1.0) > 1e-4:
-        print("[CRITICAL] 归一化严重失效！所有结果都不可信。")
+        print(f"[{sense_name}] Status: {prob.status}")
 
-    p1_val = part_1.value
-    p2_val = part_2.value
-    p3_val = part_3.value
+        if prob.status in [cp.OPTIMAL, cp.OPTIMAL_INACCURATE]:
+            val = prob.value
+            print(f"[{sense_name}] Optimal Value: {val:.8f}")
 
-    print(f"[Debug] Fidelity Decomposition:")
-    print(f"    Part 1 (CHSH part): {p1_val:.6f}")
-    print(f"    Part 2 (Positive):  {p2_val:.6f}")
-    print(f"    Part 3 (Negative):  {p3_val:.6f}")
-    # 这里的求和应该等于 prob.value
-    print(f"    Total Sum:          {p1_val + p2_val + p3_val:.6f}")
+            # --- 详细打印物理量 ---
+            print(f"--- Detailed Observables ({sense_name}) ---")
+            for name, expr in debug_dict.items():
+                print(f"{name:<16}: {expr.value:.6f}")
+            print("------------------------------------------")
 
+            p1 = part_1.value
+            p2 = part_2.value
+            p3 = part_3.value
+            print(f"Part 1 (CHSH) : {p1:.6f}")
+            print(f"Part 2 (Pos)  : {p2:.6f}")
+            print(f"Part 3 (Neg)  : {p3:.6f}")
+            print(f"Total Check   : {p1 + p2 + p3:.6f}")
+            return val
+        else:
+            print(f"[{sense_name}] Failed to find optimal solution.")
+            return None
 
-    if prob.status in [cp.OPTIMAL, cp.OPTIMAL_INACCURATE]:
-        return prob.value
-    else:
-        return None
+    # 执行两次求解
+    max_fid = solve_routine("Maximize")
+    min_fid = solve_routine("Minimize")
+
+    return max_fid, min_fid
 
 
 # ==============================================================================
@@ -402,42 +368,26 @@ if __name__ == '__main__':
     alpha_val = 2 * cos_2theta / np.sqrt(1 + sin_2theta ** 2)
     mu = np.arctan(sin_2theta)
 
-    # # 3. 输入系数矩阵
-    # vec_ineq2 = [alpha_val, 0, 0, 0, 1., 1., 1., -1.]
-    # coeff_ineq2 = convert_vector_to_matrix(vec_ineq2)
-    # 辅助变量
+    # 3. 旋转系数 (强制 B0=Z)
     cos_mu = np.cos(mu)
-    cos_2mu = np.cos(2 * mu)  # 或者使用 localizing matrix 里的 k1, k2 相关逻辑
-
-    # ---------------------------------------------------------
-    # [关键修改] 使用“旋转后”的系数
-    # 目的: 强迫 SDP 输出的 B0 算符对齐到 Z 轴
-    # ---------------------------------------------------------
+    cos_2mu = np.cos(2 * mu)
     vec_ineq_rotated = [
-        alpha_val,  # A0 系数
-        0,  # A1 系数
-        0,  # B0 系数
-        0,  # B1 系数
-        2 * cos_mu,  # A0B0 系数
-        0,  # A0B1 系数
-        cos_2mu / cos_mu,  # A1B0 系数
-        -1.0 / cos_mu  # A1B1 系数
+        alpha_val,  # A0
+        0,  # A1
+        0,  # B0
+        0,  # B1
+        2 * cos_mu,  # A0B0
+        0,  # A0B1
+        cos_2mu / cos_mu,  # A1B0
+        -1.0 / cos_mu  # A1B1
     ]
-
-    # 使用新系数构建矩阵
     coeff_ineq2 = convert_vector_to_matrix(vec_ineq_rotated)
 
     # 4. 计算边界
     quantum_bound = np.sqrt(8 + 2 * alpha_val ** 2)
-    local_bound = calculate_classical_bound(coeff_ineq2)
 
     print(f"\n[Main] Theta={theta:.4f}, Derived Alpha={alpha_val:.4f}")
     print(f"Quantum Bound = {quantum_bound:.6f}")
 
-    # 5. 测试 (不再需要传 k_level)
-    fid_max = calculate_fidelity(quantum_bound, coeff_ineq2, desc, theta)
-
-    if fid_max is not None:
-        print(f"Min Fidelity: {fid_max:.8f}")
-    else:
-        print("Calculation Failed.")
+    # 5. 测试
+    calculate_fidelity(quantum_bound, coeff_ineq2, desc, theta)
