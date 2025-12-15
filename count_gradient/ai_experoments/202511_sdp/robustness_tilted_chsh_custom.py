@@ -344,8 +344,8 @@ def calculate_fidelity(target_val: float, coeff_matrix: np.ndarray, desc: np.nda
 
     # 6. 求解 有改动
     print(f"Solving SDP for Target={target_val:.4f}...")
-    # prob = cp.Problem(cp.Minimize(func), constraints)
-    prob = cp.Problem(cp.Maximize(func), constraints)
+    prob = cp.Problem(cp.Minimize(func), constraints)
+    # prob = cp.Problem(cp.Maximize(func), constraints)
 
     try:
         # 推荐使用 MOSEK，如果不行换 CVXOPT

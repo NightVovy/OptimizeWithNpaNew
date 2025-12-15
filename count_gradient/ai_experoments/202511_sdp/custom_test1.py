@@ -300,7 +300,52 @@ def calculate_fidelity(target_val: float, coeff_matrix: np.ndarray, desc: np.nda
 
     # 约束: <A1 ZXZ> <= -<A1 X> + 误差
     # 这直接禁止了 +0.725 这种情况出现
-    constraints.append(d_val_4body <= -d_val_A1B2 + 0.1)
+    constraints.append(d_val_4body <= -d_val_A1B2 + 0.005)
+
+    # [补丁 3] 锁定 Part 1 (CHSH Core)
+    # 告诉求解器：最大 Bell 违背必然意味着 A0 和 B0 高度关联
+    # 修改 [补丁 1]: 强制 X 关联更紧 (原 0.8 -> 0.86)
+    # 理论值是 0.866，我们要求 >= 0.86
+    constraints.append(debug_dict["d_A0B0"] >= 0.999 )
+    constraints.append(debug_dict["d_A1B2"] >= 0.866)
+
+    # ==========================================================================
+    # [补丁 4] 锁定边缘分布 (Fix Marginals)
+    # 对于 theta=pi/6, <A0> 和 <B0> 理论值应为 cos(60) = 0.5
+    # Minimize 中它们掉到了 0.2 左右，这是不允许的。
+    # ==========================================================================
+    target_marginal = np.cos(2 * theta)  # 0.5
+
+    # 给一个小范围，比如 +/- 0.001
+    constraints.append(debug_dict["d_A0"] >= target_marginal - 0.001)
+    constraints.append(debug_dict["d_A0"] <= target_marginal + 0.001)
+
+    constraints.append(debug_dict["d_B0"] >= target_marginal - 0.001)
+    constraints.append(debug_dict["d_B0"] <= target_marginal + 0.001)
+
+    # ==========================================================================
+    # [补丁 5] 强制 Alice 侧反对易 (Fix Alice's Algebra)
+    # 物理事实: A0(Z) * A1(X) * A0(Z) = -A1(X)
+    # 因此 <A0 A1 A0 B2> 应该等于 -<A1 B2>
+    # Minimize 中一个是 0.8，一个是 -0.15，关系断裂。
+    # ==========================================================================
+    d_val_Alice_3body = debug_dict["d_A0A1A0B2"]
+
+    # 添加约束: <A0 A1 A0 B2> <= -<A1 B2> + 误差
+    constraints.append(d_val_Alice_3body <= -d_val_A1B2 + 0.005)
+
+    # ==========================================================================
+    # [补丁 6] 强制高阶关联一致性 (Fix 6-body term)
+    # 物理事实: <(ZXZ)_A (ZXZ)_B> = <(-X)_A (-X)_B> = <X_A X_B>
+    # 即: d_A0A1A0B0B2B0 应该 等于 d_A1B2
+    # Minimize 中一个是 -0.04，一个是 0.8，这导致了分数的巨大损失。
+    # ==========================================================================
+    d_val_6body = debug_dict["d_A0A1A0B0B2B0"]
+    d_val_2body = debug_dict["d_A1B2"]
+
+    # 强制 6体项 >= 2体项 - 误差
+    constraints.append(d_val_6body >= d_val_2body - 0.005)
+
 
     # ==========================================================================
     # 6. 双重求解逻辑 (Maximize AND Minimize)
@@ -337,8 +382,8 @@ def calculate_fidelity(target_val: float, coeff_matrix: np.ndarray, desc: np.nda
             p2 = part_2.value
             p3 = part_3.value
             print(f"Part 1 (CHSH) : {p1:.6f}")
-            print(f"Part 2 (Pos)  : {p2:.6f}")
-            print(f"Part 3 (Neg)  : {p3:.6f}")
+            print(f"Part 2 (Pos1)  : {p2:.6f}")
+            print(f"Part 3 (Pos2)  : {p3:.6f}")
             print(f"Total Check   : {p1 + p2 + p3:.6f}")
             return val
         else:

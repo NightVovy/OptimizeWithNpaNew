@@ -28,21 +28,27 @@ def calculate_specific_theta():
     k1 = cos_2mu / sin_2mu
     k2 = 1 / sin_2mu
 
+    # 7. 计算 Quantum Bound (8 + 2*alpha^2)^(1/2)
+    quantum_bound = np.sqrt(8 + 2 * alpha ** 2)
+
     # 打印结果
     print("-" * 35)
     print(f"设定参数: Theta = pi/6 (30°)")
     print("-" * 35)
-    print(f"theta (rad) : {theta_rad:.8f}")
-    print(f"alpha       : {alpha:.8f}")
-    print(f"mu (rad)    : {mu:.8f}")
+    print(f"theta (rad)      : {theta_rad:.8f}")
+    print(f"alpha            : {alpha:.8f}")
+    print(f"mu (rad)         : {mu:.8f}")
     print("-" * 35)
-    print(f"sin(2theta) : {sin_2theta:.8f}")
-    print(f"cos(2theta) : {cos_2theta:.8f}")
-    print(f"sin(2mu)    : {sin_2mu:.8f}")
-    print(f"cos(2mu)    : {cos_2mu:.8f}")
+    print(f"sin(2theta)      : {sin_2theta:.8f}")
+    print(f"cos(2theta)      : {cos_2theta:.8f}")
+    print(f"sin(2mu)         : {sin_2mu:.8f}")
+    print(f"cos(2mu)         : {cos_2mu:.8f}")
     print("-" * 35)
-    print(f"k1          : {k1:.8f}")
-    print(f"k2          : {k2:.8f}")
+    print(f"k1               : {k1:.8f}")
+    print(f"k2               : {k2:.8f}")
+    print("-" * 35)
+    # [新增输出]
+    print(f"sqrt(8+2*alpha^2): {quantum_bound:.8f}")
     print("-" * 35)
 
 
