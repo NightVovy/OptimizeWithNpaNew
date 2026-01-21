@@ -255,11 +255,19 @@ def execute_comparison_and_plot(alpha_val, lambda_vals, vec_ineq, vec_ineq_2):
     plt.figure(figsize=(8, 6))
 
     plt.plot(x1, y1, 'o-', label=f'Standard Tilted-CHSH (alpha={alpha_val})', color='blue', markersize=4)
-    plt.plot(x2, y2, 's--', label=f'New Inequality (lambda={lambda_vals})', color='red', markersize=4)
 
-    plt.xlabel('Normalized Violation V = (Val - Local) / (Quantum - Local)')
-    plt.ylabel('Minimum Fidelity')
-    plt.title(f'Fidelity Robustness Comparison (Alpha={alpha_val})')
+    # [Modify] 1. 将 "new inequality" 改为 "Inequality B2"，并使用 LaTeX 公式
+    plt.plot(x2, y2, 's--', label=r'Inequality $B_2$', color='red', markersize=4)
+
+    # [Modify] 2. 横轴标签改为公式，target->S_exp, Local->\beta_L, Quantum->\beta_Q, V->v
+    plt.xlabel(r'$v = (S_{exp} - \beta_L) / (\beta_Q - \beta_L)$', fontsize=12)
+
+    # [Modify] 3. 纵轴标签改为 "Minimum Fidelity F"
+    plt.ylabel('Minimum Fidelity F', fontsize=12)
+
+    # [Modify] 4. 标题改为 "Robust Comparison(NPA Level 3)"
+    plt.title('Robust Comparison(NPA Level 3)', fontsize=14)
+
     plt.grid(True)
     plt.legend()
 
@@ -273,9 +281,10 @@ def execute_comparison_and_plot(alpha_val, lambda_vals, vec_ineq, vec_ineq_2):
     if not os.path.exists(fig_dir):
         os.makedirs(fig_dir)
 
-    save_path = os.path.join(fig_dir, 'tilted_alpha_figure3.png')
-    plt.savefig(save_path)
+    save_path = os.path.join(fig_dir, 'tilted_alpha_figure35.png')
+    plt.savefig(save_path, dpi=300)
     print(f"\n[Output] Comparison figure saved to: {save_path}")
+    plt.show()
 
 
 # ==============================================================================

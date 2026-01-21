@@ -4,8 +4,8 @@ import numpy as np
 def get_tilted_expectations(alpha):
     """
     计算给定 alpha 下 Tilted-CHSH 最大违背的 8 个期望值。
-    返回顺序: [A0, A1, B0, B1, E00, E01, E10, E11]
-    注意：为了与 linear_independence_check 对接，两体项命名为 E00...
+    返回: (expectations_list, theta, mu)
+    expectations_list 顺序: [A0, A1, B0, B1, E00, E01, E10, E11]
     """
     # 1. 计算参数 theta 和 mu
     # sin(2*theta) = sqrt((1 - alpha^2/4) / (1 + alpha^2/4))
@@ -64,28 +64,35 @@ def get_tilted_expectations(alpha):
     exp_A1B0 = get_expectation(Op_A1B0, psi)
     exp_A1B1 = get_expectation(Op_A1B1, psi)
 
-    # 按顺序返回: A0, A1, B0, B1, A0B0, A0B1, A1B0, A1B1
-    return [exp_A0, exp_A1, exp_B0, exp_B1, exp_A0B0, exp_A0B1, exp_A1B0, exp_A1B1]
+    # 返回: (期望值列表, theta, mu)
+    expectations = [exp_A0, exp_A1, exp_B0, exp_B1, exp_A0B0, exp_A0B1, exp_A1B0, exp_A1B1]
+    return expectations, theta, mu
 
 
 def analyze_tilted_chsh(alpha):
     """
-    原有的打印显示函数，保留用于直接运行此脚本时的展示
+    打印显示函数，增加了 theta 和 mu 的显示
     """
-    results = get_tilted_expectations(alpha)
+    # 获取期望值以及角度参数
+    results, theta, mu = get_tilted_expectations(alpha)
     exp_A0, exp_A1, exp_B0, exp_B1, exp_A0B0, exp_A0B1, exp_A1B0, exp_A1B1 = results
 
     bell_value = alpha * exp_A0 + exp_A0B0 + exp_A0B1 + exp_A1B0 - exp_A1B1
     theo_max = np.sqrt(8 + 2 * alpha ** 2)
 
-    print("-" * 30)
-    print(f"1. 当前 alpha 的值: {alpha}")
-    print(f"2. 8个可观测量期望值:")
+    print("-" * 40)
+    print(f"1. 当前设置 alpha = {alpha}")
+    print(f"2. 计算得到的角度参数:")
+    print(f"   theta = {theta:.6f} rad")
+    print(f"   mu    = {mu:.6f} rad")
+
+    print(f"3. 8个可观测量期望值:")
     labels = ["A0", "A1", "B0", "B1", "A0B0", "A0B1", "A1B0", "A1B1"]
     for l, v in zip(labels, results):
         print(f"   <{l}> = {v:.6f}")
-    print(f"3. Bell值 (Calc/Theo): {bell_value:.8f} / {theo_max:.8f}")
-    print("-" * 30)
+
+    print(f"4. Bell值 (Calc/Theo): {bell_value:.8f} / {theo_max:.8f}")
+    print("-" * 40)
 
 
 if __name__ == "__main__":

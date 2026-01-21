@@ -40,7 +40,6 @@ def convert_vector_to_matrix(vec):
     return M
 
 
-# (此函数已不再使用，但为了保持代码结构完整性保留，或可直接忽略)
 def calculate_classical_bound(coeff_matrix):
     max_val = -np.inf
     for a0 in [-1, 1]:
@@ -342,12 +341,10 @@ if __name__ == '__main__':
         [0, 1, -1]
     ])
 
-    # [Task 1] 调用 compute_bell_limits 计算界限
     print("Computing bounds for CHSH...")
     local_bound1, quantum_bound1 = compute_bell_limits(coeff_chsh, desc, notation='fc', k=k_level)
     print(f"CHSH Bounds: Local={local_bound1:.4f}, Quantum={quantum_bound1:.4f}")
 
-    # 调用 compute_curve，传入计算出的界限
     x1, y1 = compute_curve(coeff_chsh, local_bound1, quantum_bound1, num_points, desc, k_level)
 
     # --- 2. 计算 Inequality 2 曲线 ---
@@ -355,29 +352,34 @@ if __name__ == '__main__':
     vec_ineq2 = [0., 0.565685, -0.4, 0.4, 1., 1., 1., -1.]
     coeff_ineq2 = convert_vector_to_matrix(vec_ineq2)
 
-    # [Task 1] 调用 compute_bell_limits 计算界限
     print("Computing bounds for Inequality 2...")
     local_bound2, quantum_bound2 = compute_bell_limits(coeff_ineq2, desc, notation='fc', k=k_level)
     print(f"Ineq2 Bounds: Local={local_bound2:.4f}, Quantum={quantum_bound2:.4f}")
 
-    # 调用 compute_curve，传入计算出的界限
     x2, y2 = compute_curve(coeff_ineq2, local_bound2, quantum_bound2, num_points, desc, k_level)
 
     # --- 3. 绘图 ---
     print("\nPlotting...")
     plt.figure(figsize=(10, 7))
 
-    # [Task 2] 横轴现在是 V，范围大约在 0 到 1 之间
+    # [Task 2] 横轴现在是 v，范围大约在 0 到 1 之间
     plt.plot(x1, y1, marker='o', markersize=4, linestyle='-', color='blue', label='Standard CHSH')
-    plt.plot(x2, y2, marker='s', markersize=4, linestyle='--', color='red', label='Inequality B2')
+
+    # === 修改点 1: Legend 改写为公式 B_{2,2} ===
+    plt.plot(x2, y2, marker='s', markersize=4, linestyle='--', color='red', label=r'Inequality $B_{1}$')
 
     # [Task 2] 标注重要界限 (归一化坐标系下，Local=0, Quantum=1)
-    plt.axvline(x=0.0, color='gray', linestyle=':', alpha=0.5, label='Local Bound (V=0)')
-    plt.axvline(x=1.0, color='green', linestyle=':', alpha=0.5, label='Quantum Bound (V=1)')
+    # 为了保持一致，这里的 V 也建议用小写 v (虽然你没强制要求，但通常保持一致更好，这里我暂且保持了原本的 Text 但用 Math font 让它好看点)
+    plt.axvline(x=0.0, color='gray', linestyle=':', alpha=0.5, label=r'Local Bound ($v=0$)')
+    plt.axvline(x=1.0, color='green', linestyle=':', alpha=0.5, label=r'Quantum Bound ($v=1$)')
 
     plt.title(f'Robustness Comparison (NPA Level {k_level})')
-    # [Task 2] 更新横轴标签
-    plt.xlabel('Normalized Violation V = (Target - Local) / (Quantum - Local)')
+
+    # === 修改点 2: 横轴标签改写为公式形式 ===
+    # 格式：v = (S_exp - \beta_L) / (\beta_Q - \beta_L)
+    # 使用 r'' 原始字符串防止转义字符冲突，使用 $...$ 启用 LaTeX 数学模式
+    plt.xlabel(r'$v = (S_{exp} - \beta_L) / (\beta_Q - \beta_L)$', fontsize=12)
+
     plt.ylabel('Minimum Fidelity F')
     plt.ylim(0, 1.05)
     plt.grid(True, which='both', linestyle='--', alpha=0.7)
@@ -388,7 +390,7 @@ if __name__ == '__main__':
     if not os.path.exists(figure_dir):
         os.makedirs(figure_dir)
 
-    output_path = os.path.join(figure_dir, 'chsh_fidelity_figure3.png')
+    output_path = os.path.join(figure_dir, 'chsh_fidelity_figure3_revised.png')
 
     plt.savefig(output_path, dpi=300)
     print(f"\nFigure saved to {output_path}")
